@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Gerenciador de Rifa</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1a7a2e;
+    --green-light: #22a83e;
+    --gold: #f0b429;
+    --gold-dark: #c8920a;
+    --red: #e03535;
+    --bg: #0f1f12;
+    --surface: #172b1a;
+    --surface2: #1e3522;
+    --text: #f0f0f0;
+    --text-muted: #7a9e80;
+    --border: rgba(255,255,255,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+  .logo span { color: var(--text); }
+  .new-rifa-btn {
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .new-rifa-btn:active { background: var(--green-light); }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 14px 8px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+  .tab-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* SECTION */
+  .section { padding: 0 16px; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* GRID DE NÚMEROS */
+  .numbers-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 5px;
+    padding: 0 16px;
+  }
+  .num-cell {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s;
+    border: 1.5px solid transparent;
+    position: relative;
+    user-select: none;
+  }
+  .num-cell:active { transform: scale(0.92); }
+
+  .num-cell.free {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .num-cell.reserved {
+    background: rgba(240,180,41,0.15);
+    color: var(--gold);
+    border-color: rgba(240,180,41,0.4);
+  }
+  .num-cell.paid {
+    background: rgba(26,122,46,0.3);
+    color: #6ee882;
+    border-color: rgba(26,122,46,0.6);
+  }
+  .num-cell.winner {
+    background: var(--gold);
+    color: #000;
+    border-color: var(--gold-dark);
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(240,180,41,0.5); }
+    50% { box-shadow: 0 0 0 6px rgba(240,180,41,0); }
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 14px;
+    padding: 12px 16px 4px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .ld-free { background: var(--surface2); border: 1px solid var(--border); }
+  .ld-reserved { background: rgba(240,180,41,0.3); }
+  .ld-paid { background: rgba(26,122,46,0.4); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 24px 20px 40px;
+    width: 100%;
+    max-width: 500px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .modal-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: var(--green-light); }
+  .modal-input::placeholder { color: var(--text-muted); font-weight: 600; }
+
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .modal-btn {
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .modal-btn:active { opacity: 0.8; }
+  .btn-cancel { background: var(--surface2); color: var(--text-muted); }
+  .btn-reserve { background: var(--gold); color: #000; }
+  .btn-paid { background: var(--green); color: #fff; }
+  .btn-free { background: var(--red); color: #fff; }
+  .btn-full { grid-column: 1 / -1; }
+
+  /* LISTA DE COMPRADORES */
+  .buyer-list { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+  .buyer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .buyer-nums {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex: 1;
+  }
+  .buyer-num-badge {
+    background: var(--surface2);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+  .buyer-num-badge.paid { color: #6ee882; background: rgba(26,122,46,0.25); }
+  .buyer-name { font-weight: 800; font-size: 15px; margin-bottom: 2px; }
+  .buyer-status {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .status-paid { background: rgba(26,122,46,0.3); color: #6ee882; }
+  .status-pending { background: rgba(240,180,41,0.2); color: var(--gold); }
+
+  /* RESULTADO TAB */
+  .resultado-section {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .result-card h3 {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+  .lottery-input-wrap {
+    display: flex;
+    gap: 10px;
+  }
+  .lottery-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .lottery-input:focus { border-color: var(--gold); }
+  .lottery-input::placeholder { font-size: 14px; letter-spacing: 1px; color: var(--text-muted); }
+  .check-btn {
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .winner-banner {
+    background: linear-gradient(135deg, rgba(240,180,41,0.2), rgba(240,180,41,0.05));
+    border: 1.5px solid var(--gold);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    display: none;
+  }
+  .winner-banner.show { display: block; }
+  .winner-trophy { font-size: 48px; margin-bottom: 8px; }
+  .winner-label { font-size: 12px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; }
+  .winner-name { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--gold); margin: 4px 0; }
+  .winner-num { font-size: 14px; color: var(--text-muted); font-weight: 700; }
+  .no-winner {
+    background: rgba(224,53,53,0.1);
+    border: 1px solid rgba(224,53,53,0.3);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    font-weight: 700;
+    color: #e87777;
+    display: none;
+  }
+  .no-winner.show { display: block; }
+
+  /* WHATSAPP MSG */
+  .msg-card {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+    font-weight: 600;
+    white-space: pre-wrap;
+    position: relative;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  /* NOVA RIFA MODAL */
+  .full-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 300;
+    overflow-y: auto;
+  }
+  .full-modal-overlay.show { display: block; }
+  .full-modal {
+    padding: 24px 20px 60px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  .full-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .back-btn {
+    background: var(--surface);
+    border: none;
+    color: var(--text);
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .full-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--gold);
+    letter-spacing: 1px;
+  }
+  .form-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .form-group { margin-bottom: 18px; }
+  .create-btn {
+    width: 100%;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 18px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 18px;
+    cursor: pointer;
+    margin-top: 10px;
+    letter-spacing: 1px;
+  }
+
+  /* RIFA SELECTOR */
+  .rifa-selector {
+    padding: 0 16px 12px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .rifa-selector::-webkit-scrollbar { display: none; }
+  .rifa-chip {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .rifa-chip.active {
+    background: rgba(240,180,41,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-weight: 700; font-size: 16px; margin-bottom: 6px; color: var(--text); }
+  .empty-sub { font-size: 13px; }
+
+  /* Progress bar */
+  .progress-wrap { padding: 0 16px 16px; }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .progress-bar {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--green), var(--green-light));
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .progress-fill.gold {
+    background: linear-gradient(to right, var(--gold-dark), var(--gold));
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎟️ RIFA<span>BOSS</span></div>
+  <button class="new-rifa-btn" onclick="openNewRifa()">+ Nova Rifa</button>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('numeros')" id="tab-numeros">
+    <span class="tab-icon">🔢</span>NÚMEROS
+  </div>
+  <div class="tab" onclick="showTab('compradores')" id="tab-compradores">
+    <span class="tab-icon">👥</span>PESSOAS
+  </div>
+  <div class="tab" onclick="showTab('resultado')" id="tab-resultado">
+    <span class="tab-icon">🏆</span>RESULTADO
+  </div>
+  <div class="tab" onclick="showTab('mensagens')" id="tab-mensagens">
+    <span class="tab-icon">💬</span>MSGS
+  </div>
+</div>
+
+<div id="main-content">
+  <!-- Empty state -->
+  <div class="empty-state" id="empty-state">
+    <div class="empty-icon">🎟️</div>
+    <div class="empty-text">Nenhuma rifa ainda</div>
+    <div class="empty-sub">Clique em "+ Nova Rifa" para começar</div>
+  </div>
+
+  <!-- Content when rifa exists -->
+  <div id="rifa-content" style="display:none">
+
+    <!-- Rifa selector -->
+    <div style="padding: 12px 16px 0">
+      <div class="section-title">Rifa Ativa</div>
+    </div>
+    <div class="rifa-selector" id="rifa-chips"></div>
+
+    <!-- TAB: NÚMEROS -->
+    <div id="view-numeros">
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-free">100</div>
+          <div class="stat-label">Livres</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-reserved">0</div>
+          <div class="stat-label">Reservados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-paid">0</div>
+          <div class="stat-label">Pagos</div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Vendidos</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="progress-wrap" style="padding-top:0">
+        <div class="progress-label">
+          <span>Pagos</span>
+          <span id="progress-pct2">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill gold" id="progress-bar2" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot ld-free"></div>Livre</div>
+        <div class="legend-item"><div class="legend-dot ld-reserved"></div>Reservado</div>
+        <div class="legend-item"><div class="legend-dot ld-paid"></div>Pago</div>
+      </div>
+
+      <div class="numbers-grid" id="numbers-grid"></div>
+    </div>
+
+    <!-- TAB: COMPRADORES -->
+    <div id="view-compradores" style="display:none">
+      <div style="padding: 16px 16px 8px">
+        <div class="section-title">Lista de Compradores</div>
+      </div>
+      <div class="buyer-list" id="buyer-list"></div>
+      <div class="empty-state" id="buyer-empty" style="padding:40px 20px">
+        <div class="empty-icon">👤</div>
+        <div class="empty-text">Nenhum comprador ainda</div>
+        <div class="empty-sub">Toque em um número para adicionar</div>
+      </div>
+    </div>
+
+    <!-- TAB: RESULTADO -->
+    <div id="view-resultado" style="display:none">
+      <div class="resultado-section">
+        <div class="result-card">
+          <h3>🎲 Resultado da Loteria Federal</h3>
+          <div class="lottery-input-wrap">
+            <input class="lottery-input" id="lottery-input" type="number" placeholder="Digite os 2 últimos dígitos" maxlength="2" min="0" max="99">
+            <button class="check-btn" onclick="checkWinner()">Verificar</button>
+          </div>
+          <div style="margin-top:10px; font-size:12px; color:var(--text-muted); font-weight:600">
+            Ex: resultado 12345 → digite 45
+          </div>
+        </div>
+
+        <div class="winner-banner" id="winner-banner">
+          <div class="winner-trophy">🏆</div>
+          <div class="winner-label">Ganhador</div>
+          <div class="winner-name" id="winner-name-text">-</div>
+          <div class="winner-num" id="winner-num-text">-</div>
+        </div>
+
+        <div class="no-winner" id="no-winner">
+          ❌ Número não foi vendido — nenhum ganhador nessa rifa!
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MENSAGENS -->
+    <div id="view-mensagens" style="display:none">
+      <div class="resultado-section">
+        <div class="result-card">
+          <h3>💬 Mensagens Prontas para WhatsApp</h3>
+          <div style="display:flex; flex-direction:column; gap:14px; margin-top:4px">
+
+            <div>
+              <div class="form-label" style="margin-bottom:6px">📢 Divulgação da Rifa</div>
+              <div class="msg-card" id="msg-divulgacao">
+                <button class="copy-btn" onclick="copyMsg('msg-divulgacao')">Copiar</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label" style="margin-bottom:6px">✅ Confirmação de Reserva</div>
+              <div class="msg-card" id="msg-reserva">
+                <button class="copy-btn" onclick="copyMsg('msg-reserva')">Copiar</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label" style="margin-bottom:6px">💸 Cobrança de Pagamento</div>
+              <div class="msg-card" id="msg-cobranca">
+                <button class="copy-btn" onclick="copyMsg('msg-cobranca')">Copiar</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-label" style="margin-bottom:6px">🏆 Anúncio do Ganhador</div>
+              <div class="msg-card" id="msg-ganhador">
+                <button class="copy-btn" onclick="copyMsg('msg-ganhador')">Copiar</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: NÚMERO -->
+<div class="modal-overlay" id="num-modal" onclick="closeNumModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Número 00</div>
+    <div class="modal-sub" id="modal-sub">Livre</div>
+    <div id="modal-body">
+      <input class="modal-input" id="buyer-name-input" type="text" placeholder="Nome do comprador" autocomplete="off">
+      <input class="modal-input" id="buyer-phone-input" type="tel" placeholder="WhatsApp (opcional)">
+      <div class="modal-actions" id="modal-actions"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVA RIFA -->
+<div class="full-modal-overlay" id="new-rifa-modal">
+  <div class="full-modal">
+    <div class="full-modal-header">
+      <button class="back-btn" onclick="closeNewRifa()">←</button>
+      <div class="full-modal-title">Nova Rifa</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome da Rifa (prêmio)</label>
+      <input class="modal-input" id="rifa-nome" placeholder="Ex: Celular iPhone 15" style="margin:0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor por número (R$)</label>
+      <input class="modal-input" id="rifa-valor" type="number" placeholder="Ex: 10.00" style="margin:0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Chave Pix</label>
+      <input class="modal-input" id="rifa-pix" placeholder="Seu CPF, celular ou email" style="margin:0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data do Sorteio</label>
+      <input class="modal-input" id="rifa-data" type="date" style="margin:0; color-scheme:dark">
+    </div>
+    <button class="create-btn" onclick="createRifa()">🎟️ CRIAR RIFA</button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let rifas = JSON.parse(localStorage.getItem('rifas') || '[]');
+let currentRifaIndex = 0;
+let selectedNum = null;
+
+function saveData() {
+  localStorage.setItem('rifas', JSON.stringify(rifas));
+}
+
+function getCurrentRifa() {
+  return rifas[currentRifaIndex] || null;
+}
+
+// ===== INIT =====
+function init() {
+  if (rifas.length > 0) {
+    showRifaContent();
+  }
+  renderAll();
+}
+
+function showRifaContent() {
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('rifa-content').style.display = 'block';
+}
+
+// ===== NOVA RIFA =====
+function openNewRifa() {
+  document.getElementById('new-rifa-modal').classList.add('show');
+  // set default date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('rifa-data').value = today;
+}
+function closeNewRifa() {
+  document.getElementById('new-rifa-modal').classList.remove('show');
+}
+function createRifa() {
+  const nome = document.getElementById('rifa-nome').value.trim();
+  const valor = document.getElementById('rifa-valor').value.trim();
+  const pix = document.getElementById('rifa-pix').value.trim();
+  const data = document.getElementById('rifa-data').value;
+  if (!nome) { alert('Coloca o nome do prêmio!'); return; }
+
+  const numeros = {};
+  for (let i = 0; i <= 99; i++) {
+    const k = String(i).padStart(2,'0');
+    numeros[k] = { status: 'free', buyer: '', phone: '' };
+  }
+
+  rifas.push({ nome, valor, pix, data, numeros, createdAt: Date.now() });
+  currentRifaIndex = rifas.length - 1;
+  saveData();
+  closeNewRifa();
+  showRifaContent();
+  renderAll();
+}
+
+// ===== TABS =====
+function showTab(tab) {
+  ['numeros','compradores','resultado','mensagens'].forEach(t => {
+    document.getElementById('view-' + t).style.display = t === tab ? 'block' : 'none';
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'mensagens') renderMessages();
+  if (tab === 'compradores') renderBuyers();
+}
+
+// ===== RENDER ALL =====
+function renderAll() {
+  renderChips();
+  renderGrid();
+  renderStats();
+  renderBuyers();
+}
+
+function renderChips() {
+  const el = document.getElementById('rifa-chips');
+  el.innerHTML = rifas.map((r, i) =>
+    `<div class="rifa-chip ${i === currentRifaIndex ? 'active' : ''}" onclick="selectRifa(${i})">${r.nome}</div>`
+  ).join('');
+}
+
+function selectRifa(i) {
+  currentRifaIndex = i;
+  renderAll();
+}
+
+// ===== GRID =====
+function renderGrid() {
+  const rifa = getCurrentRifa();
+  if (!rifa) return;
+  const grid = document.getElementById('numbers-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i <= 99; i++) {
+    const k = String(i).padStart(2,'0');
+    const n = rifa.numeros[k];
+    const div = document.createElement('div');
+    div.className = 'num-cell ' + n.status;
+    div.textContent = k;
+    div.onclick = () => openNumModal(k);
+    grid.appendChild(div);
+  }
+}
+
+// ===== STATS =====
+function renderStats() {
+  const rifa = getCurrentRifa();
+  if (!rifa) return;
+  let free = 0, reserved = 0, paid = 0;
+  for (let i = 0; i <= 99; i++) {
+    const k = String(i).padStart(2,'0');
+    const s = rifa.numeros[k].status;
+    if (s === 'free') free++;
+    else if (s === 'reserved') reserved++;
+    else if (s === 'paid') paid++;
+  }
+  document.getElementById('stat-free').textContent = free;
+  document.getElementById('stat-reserved').textContent = reserved;
+  document.getElementById('stat-paid').textContent = paid;
+  const sold = reserved + paid;
+  document.getElementById('progress-pct').textContent = sold + '%';
+  document.getElementById('progress-bar').style.width = sold + '%';
+  document.getElementById('progress-pct2').textContent = paid + '%';
+  document.getElementById('progress-bar2').style.width = paid + '%';
+}
+
+// ===== BUYERS =====
+function renderBuyers() {
+  const rifa = getCurrentRifa();
+  if (!rifa) return;
+  const byBuyer = {};
+  for (let i = 0; i <= 99; i++) {
+    const k = String(i).padStart(2,'0');
+    const n = rifa.numeros[k];
+    if (n.status !== 'free') {
+      const key = n.buyer || '(sem nome)';
+      if (!byBuyer[key]) byBuyer[key] = { nums: [], status: n.status, phone: n.phone };
+      byBuyer[key].nums.push({ num: k, status: n.status });
+      if (n.status === 'reserved') byBuyer[key].status = 'reserved';
+    }
+  }
+  const list = document.getElementById('buyer-list');
+  const empty = document.getElementById('buyer-empty');
+  const entries = Object.entries(byBuyer);
+  list.innerHTML = '';
+  if (entries.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  entries.forEach(([name, data]) => {
+    const card = document.createElement('div');
+    card.className = 'buyer-card';
+    const allPaid = data.nums.every(n => n.status === 'paid');
+    card.innerHTML = `
+      <div style="flex:1">
+        <div class="buyer-name">${name}</div>
+        <div class="buyer-nums" style="margin-top:6px">
+          ${data.nums.map(n => `<span class="buyer-num-badge ${n.status === 'paid' ? 'paid' : ''}">${n.num}</span>`).join('')}
+        </div>
+        ${data.phone ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-weight:600">📱 ${data.phone}</div>` : ''}
+      </div>
+      <div class="buyer-status ${allPaid ? 'status-paid' : 'status-pending'}">${allPaid ? '✅ Pago' : '⏳ Pendente'}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ===== NUM MODAL =====
+function openNumModal(k) {
+  selectedNum = k;
+  const rifa = getCurrentRifa();
+  const n = rifa.numeros[k];
+  document.getElementById('modal-title').textContent = 'Número ' + k;
+  const statusLabel = { free: '🟢 Livre', reserved: '🟡 Reservado — ' + n.buyer, paid: '✅ Pago — ' + n.buyer };
+  document.getElementById('modal-sub').textContent = statusLabel[n.status] || '';
+
+  const nameInput = document.getElementById('buyer-name-input');
+  const phoneInput = document.getElementById('buyer-phone-input');
+  nameInput.value = n.buyer || '';
+  phoneInput.value = n.phone || '';
+
+  const actions = document.getElementById('modal-actions');
+  if (n.status === 'free') {
+    nameInput.style.display = 'block';
+    phoneInput.style.display = 'block';
+    actions.innerHTML = `
+      <button class="modal-btn btn-cancel" onclick="closeNumModal()">Cancelar</button>
+      <button class="modal-btn btn-reserve" onclick="setStatus('reserved')">Reservar</button>
+    `;
+  } else if (n.status === 'reserved') {
+    nameInput.style.display = 'block';
+    phoneInput.style.display = 'block';
+    actions.innerHTML = `
+      <button class="modal-btn btn-free" onclick="setStatus('free')">Liberar</button>
+      <button class="modal-btn btn-paid" onclick="setStatus('paid')">Confirmar Pix ✅</button>
+    `;
+  } else if (n.status === 'paid') {
+    nameInput.style.display = 'none';
+    phoneInput.style.display = 'none';
+    actions.innerHTML = `
+      <button class="modal-btn btn-cancel" onclick="closeNumModal()">Fechar</button>
+      <button class="modal-btn btn-free btn-full" onclick="setStatus('free')" style="grid-column:unset;flex:1">Cancelar venda</button>
+    `;
+    actions.style.display = 'flex';
+  }
+
+  document.getElementById('num-modal').classList.add('show');
+}
+
+function closeNumModal(e) {
+  if (!e || e.target === document.getElementById('num-modal')) {
+    document.getElementById('num-modal').classList.remove('show');
+  }
+}
+
+function setStatus(status) {
+  const rifa = getCurrentRifa();
+  const n = rifa.numeros[selectedNum];
+  if (status !== 'free') {
+    const name = document.getElementById('buyer-name-input').value.trim();
+    if (!name) { alert('Coloca o nome do comprador!'); return; }
+    n.buyer = name;
+    n.phone = document.getElementById('buyer-phone-input').value.trim();
+  } else {
+    n.buyer = '';
+    n.phone = '';
+  }
+  n.status = status;
+  saveData();
+  document.getElementById('num-modal').classList.remove('show');
+  renderAll();
+}
+
+// ===== RESULTADO =====
+function checkWinner() {
+  const val = document.getElementById('lottery-input').value.trim();
+  if (val === '' || isNaN(val)) { alert('Digite um número válido!'); return; }
+  const k = String(parseInt(val)).padStart(2,'0');
+  const rifa = getCurrentRifa();
+  const n = rifa.numeros[k];
+  const wb = document.getElementById('winner-banner');
+  const nw = document.getElementById('no-winner');
+
+  if (n && n.status !== 'free') {
+    wb.classList.add('show');
+    nw.classList.remove('show');
+    document.getElementById('winner-name-text').textContent = n.buyer || '(sem nome)';
+    document.getElementById('winner-num-text').textContent = 'Número ' + k + (n.phone ? ' · ' + n.phone : '');
+  } else {
+    wb.classList.remove('show');
+    nw.classList.add('show');
+  }
+}
+
+// ===== MESSAGES =====
+function renderMessages() {
+  const rifa = getCurrentRifa();
+  if (!rifa) return;
+  const v = rifa.valor ? 'R$ ' + parseFloat(rifa.valor).toFixed(2) : 'R$ ?';
+  const data = rifa.data ? new Date(rifa.data + 'T12:00:00').toLocaleDateString('pt-BR') : '?';
+  const pix = rifa.pix || '(sua chave pix)';
+
+  document.getElementById('msg-divulgacao').innerHTML = `<button class="copy-btn" onclick="copyMsg('msg-divulgacao')">Copiar</button>
+🎟️ *RIFA — ${rifa.nome.toUpperCase()}*
+
+Tô fazendo uma rifa e você pode participar!
+
+💰 Cada número: *${v}*
+🔢 Números de 00 a 99
+📅 Sorteio: *${data}* pela Loteria Federal
+
+Quer garantir o seu número? Me chama aqui! 👇`;
+
+  document.getElementById('msg-reserva').innerHTML = `<button class="copy-btn" onclick="copyMsg('msg-reserva')">Copiar</button>
+✅ *Reserva confirmada!*
+
+Oi [NOME]! Seus números estão reservados: *[NÚMEROS]*
+
+Para garantir, faça o Pix:
+💳 Chave: *${pix}*
+💰 Valor: *[VALOR]*
+
+Após pagar me manda o comprovante! 🙏`;
+
+  document.getElementById('msg-cobranca').innerHTML = `<button class="copy-btn" onclick="copyMsg('msg-cobranca')">Copiar</button>
+Oi [NOME]! 👋
+
+Passando pra lembrar que o pagamento dos seus números *[NÚMEROS]* ainda está pendente.
+
+💳 Pix: *${pix}*
+💰 Valor: *[VALOR]*
+
+O sorteio é dia *${data}*. Confirma pra mim quando pagar! 😊`;
+
+  document.getElementById('msg-ganhador').innerHTML = `<button class="copy-btn" onclick="copyMsg('msg-ganhador')">Copiar</button>
+🏆 *RESULTADO DA RIFA — ${rifa.nome.toUpperCase()}*
+
+O sorteio foi realizado hoje pela Loteria Federal! 🎲
+
+🔢 Número sorteado: *[NÚMERO]*
+🎉 Ganhador(a): *[NOME]*
+
+Parabéns! Entre em contato pra combinar a entrega do prêmio! 🎁
+
+Obrigado a todos que participaram! 🙏`;
+}
+
+function copyMsg(id) {
+  const el = document.getElementById(id);
+  const btn = el.querySelector('.copy-btn');
+  const text = el.textContent.replace('Copiar','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => btn.textContent = 'Copiar', 2000);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
