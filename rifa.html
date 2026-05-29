@@ -339,6 +339,16 @@
   .status-paid { background: rgba(26,122,46,0.3); color: #6ee882; }
   .status-pending { background: rgba(240,180,41,0.2); color: var(--gold); }
 
+  .chip-delete {
+    margin-left: 6px;
+    font-size: 14px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    cursor: pointer;
+    display: inline-block;
+  }
+  .chip-delete:active { opacity: 1; }
+
   /* RESULTADO TAB */
   .resultado-section {
     padding: 16px;
@@ -862,8 +872,25 @@ function renderAll() {
 function renderChips() {
   const el = document.getElementById('rifa-chips');
   el.innerHTML = rifas.map((r, i) =>
-    `<div class="rifa-chip ${i === currentRifaIndex ? 'active' : ''}" onclick="selectRifa(${i})">${r.nome}</div>`
+    `<div class="rifa-chip ${i === currentRifaIndex ? 'active' : ''}" onclick="selectRifa(${i})">
+      ${r.nome}
+      <span class="chip-delete" onclick="deleteRifa(event, ${i})">🗑️</span>
+    </div>`
   ).join('');
+}
+
+function deleteRifa(e, i) {
+  e.stopPropagation();
+  const rifa = rifas[i];
+  if (!confirm(`Excluir a rifa "${rifa.nome}"? Essa ação não pode ser desfeita.`)) return;
+  rifas.splice(i, 1);
+  if (currentRifaIndex >= rifas.length) currentRifaIndex = rifas.length - 1;
+  saveData();
+  if (rifas.length === 0) {
+    document.getElementById('rifa-content').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'flex';
+  }
+  renderAll();
 }
 
 function selectRifa(i) {
