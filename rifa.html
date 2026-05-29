@@ -534,14 +534,17 @@
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: 20px;
-    padding: 8px 16px;
+    padding: 8px 14px;
     font-size: 13px;
     font-weight: 800;
     color: var(--text-muted);
-    cursor: pointer;
     white-space: nowrap;
     transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
+  .rifa-chip span:first-child { cursor: pointer; }
   .rifa-chip.active {
     background: rgba(240,180,41,0.15);
     border-color: var(--gold);
@@ -872,25 +875,29 @@ function renderAll() {
 function renderChips() {
   const el = document.getElementById('rifa-chips');
   el.innerHTML = rifas.map((r, i) =>
-    `<div class="rifa-chip ${i === currentRifaIndex ? 'active' : ''}" onclick="selectRifa(${i})">
-      ${r.nome}
-      <span class="chip-delete" onclick="deleteRifa(event, ${i})">🗑️</span>
+    `<div class="rifa-chip ${i === currentRifaIndex ? 'active' : ''}" data-idx="${i}">
+      <span class="chip-name">${r.nome}</span>
+      <span class="chip-delete">🗑️</span>
     </div>`
   ).join('');
-}
 
-function deleteRifa(e, i) {
-  e.stopPropagation();
-  const rifa = rifas[i];
-  if (!confirm(`Excluir a rifa "${rifa.nome}"? Essa ação não pode ser desfeita.`)) return;
-  rifas.splice(i, 1);
-  if (currentRifaIndex >= rifas.length) currentRifaIndex = rifas.length - 1;
-  saveData();
-  if (rifas.length === 0) {
-    document.getElementById('rifa-content').style.display = 'none';
-    document.getElementById('empty-state').style.display = 'flex';
-  }
-  renderAll();
+  el.querySelectorAll('.rifa-chip').forEach(chip => {
+    const i = Number(chip.dataset.idx);
+    chip.querySelector('.chip-name').addEventListener('click', () => selectRifa(i));
+    chip.querySelector('.chip-delete').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const rifa = rifas[i];
+      if (!confirm('Excluir a rifa "' + rifa.nome + '"? Essa ação não pode ser desfeita.')) return;
+      rifas.splice(i, 1);
+      if (currentRifaIndex >= rifas.length) currentRifaIndex = rifas.length - 1;
+      saveData();
+      if (rifas.length === 0) {
+        document.getElementById('rifa-content').style.display = 'none';
+        document.getElementById('empty-state').style.display = 'flex';
+      }
+      renderAll();
+    });
+  });
 }
 
 function selectRifa(i) {
